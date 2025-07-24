@@ -1,0 +1,1515 @@
+import React from "react";
+import "./../../../../css/eventpage.css";
+import socketIOClient from "socket.io-client";
+import { IoMdArrowBack } from "react-icons/io";
+import { FiLock } from "react-icons/fi";
+import { Navigate } from "react-router-dom";
+import BetSlip from "./BetSlip";
+import Book from "./Book";
+import DropDown from "../../../../components/Common/Sidebar/DropDown";
+import Position from "./Postion";
+const ENDPOINT = "";
+class EventPage extends React.Component {
+  constructor(props) {
+    super();
+    this.state = {
+      eventname: "...",
+      eventdata: {},
+      runners: [],
+      line_runners: [],
+      extra_runners: [],
+      stop: 0,
+      show_slip: false,
+      logout: false,
+      slip_obj: {},
+      slip_type: "",
+      stack: 0,
+      active_runner_id: "",
+      active_runner_name: "",
+      betlist: [],
+      exp: "",
+      bal: "",
+      market_type: {},
+      market_ids: [],
+      active_market_type: "",
+      active_runners: [],
+      slip_market_id: "",
+      openbook: false,
+      o_rate: "",
+      openpostion: false,
+      position: [],
+      book_title: "",
+    };
+    this.socket = {};
+  }
+  componentDidMount() {
+    let betdata = [];
+    if (this.props.betdata) {
+      betdata = this.props.betdata;
+    }
+    this.setState({
+      betlist: betdata,
+    });
+    if (this.props.eventdata) {
+      this.setState(
+        {
+          eventname: this.props.eventdata.eventname,
+          runners:
+            this.props.eventdata.runners &&
+            this.props.eventdata.runners.length > 0
+              ? this.props.eventdata.runners
+              : [],
+          line_runners:
+            this.props.eventdata.line_runners &&
+            this.props.eventdata.line_runners.length > 0
+              ? this.props.eventdata.line_runners
+              : [],
+          extra_runners:
+            this.props.eventdata.extra_runners &&
+            this.props.eventdata.extra_runners.length > 0
+              ? this.props.eventdata.extra_runners
+              : [],
+          exp: this.props.exp ? this.props.exp : "",
+          bal: this.props.bal ? this.props.bal : "",
+        },
+        () => {}
+      );
+    }
+    this.getRunners();
+    this.socket = socketIOClient(ENDPOINT, {
+      debug: false,
+      forceNew: true,
+      reconnection: true,
+      autoConnect: true,
+      secure: true,
+      multiplex: false,
+      transports: ["websocket", "polling"],
+      forceBase64: true,
+      rememberUpgrade: true,
+      isLoggenin: true,
+    });
+
+    this.socket.on("connection", () => {
+      if (parseInt(this.state.stop) > 1) {
+        let market_ids = [...this.state.market_ids];
+        this.socket.emit("event", {
+          eid: this.props.eventid,
+          mid: market_ids.join(),
+        });
+      }
+    });
+
+    this.socket.on("disconnect", () => {
+      console.log("disconnect");
+    });
+
+    this.socket.on("data", this.changeData);
+    this.socket.on("updaterunner", () => {
+      this.getRunners();
+    });
+    this.timerID = setInterval(() => this.tick(), 1000);
+  }
+  componentWillUnmount() {
+    this.socket.disconnect();
+    this.catchData();
+    clearInterval(this.timerID);
+  }
+  catchData = () => {
+    let all_runners = {
+      eventname: this.state.eventname,
+      runners: [...this.state.runners],
+      line_runners: [...this.state.line_runners],
+      extra_runners: [...this.state.extra_runners],
+    };
+    localStorage.setItem("exp", this.state.exp ? this.state.exp : "");
+    localStorage.setItem("bal", this.state.bal ? this.state.bal : "");
+    localStorage.setItem(
+      "betlist_" + this.props.eventid,
+      JSON.stringify(this.state.betlist)
+    );
+    localStorage.setItem(this.props.eventid, JSON.stringify(all_runners));
+  };
+  getRunners() {
+    let headers = new Headers();
+    headers.append("Authorization", "Bearer " + localStorage.getItem("jwt"));
+    let urlencoded = new URLSearchParams();
+    urlencoded.append("event_id", this.props.eventid);
+    let requestOptions = {
+      method: "POST",
+      headers: headers,
+      body: urlencoded,
+      redirect: "follow",
+    };
+    fetch(import.meta.env.VITE_API_HOST + "/getRunners", requestOptions)
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.success) {
+          let eventname = "...";
+          let rn = [];
+          let ls = [];
+          let ext = [];
+          let market_type = {};
+          let market_ids = [this.props.marketid, ...this.state.market_ids];
+          if (result.data && result.data.runners) {
+            eventname = result.data.event_name;
+            for (let i = 0; i < result.data.runners.length; i++) {
+              market_type[result.data.runners[i].market_id] = "mo";
+              rn[i] = {};
+              rn[i]["rs"] =
+                this.state.runners.length > i && this.state.runners[i]["rs"]
+                  ? this.state.runners[i]["rs"]
+                  : "";
+              rn[i]["b"] =
+                this.state.runners.length > i && this.state.runners[i]["b"]
+                  ? this.state.runners[i]["b"]
+                  : [0];
+
+              rn[i]["bs"] =
+                this.state.runners.length > i && this.state.runners[i]["bs"]
+                  ? this.state.runners[i]["bs"]
+                  : [0];
+
+              rn[i]["l"] =
+                this.state.runners.length > i && this.state.runners[i]["l"]
+                  ? this.state.runners[i]["l"]
+                  : [0];
+
+              rn[i]["ls"] =
+                this.state.runners.length > i && this.state.runners[i]["ls"]
+                  ? this.state.runners[i]["ls"]
+                  : [0];
+
+              rn[i]["n"] = result.data.runners[i].name;
+              rn[i]["rid"] = result.data.runners[i].runnerId;
+              rn[i].exp =
+                this.props.eventdata.runners &&
+                this.props.eventdata.runners.length > i
+                  ? this.props.eventdata.runners[i].exp
+                  : "";
+              rn[i]["lock"] = result.data.runners[i].locked;
+            }
+          }
+          if (result.data && result.data.line_runners) {
+            for (let i = 0; i < result.data.line_runners.length; i++) {
+              ls[i] = {};
+              ls[i]["rs"] =
+                this.state.line_runners.length > i &&
+                this.state.line_runners[i]["rs"]
+                  ? this.state.line_runners[i]["rs"]
+                  : "";
+              market_type[result.data.line_runners[i].market_id] = "ls";
+              ls[i]["n"] = result.data.line_runners[i].name;
+              ls[i]["rid"] = result.data.line_runners[i].runnerId;
+              ls[i]["mkid"] = result.data.line_runners[i].market_id;
+              ls[i]["lock"] = result.data.line_runners[i].locked;
+              ls[i]["b"] =
+                this.state.line_runners &&
+                this.state.line_runners.length > i &&
+                this.state.line_runners[i]["b"]
+                  ? this.state.line_runners[i]["b"]
+                  : [0];
+              ls[i]["bs"] =
+                this.state.line_runners &&
+                this.state.line_runners.length > i &&
+                this.state.line_runners[i]["bs"]
+                  ? this.state.line_runners[i]["bs"]
+                  : [0];
+              ls[i]["l"] =
+                this.state.line_runners &&
+                this.state.line_runners.length > i &&
+                this.state.line_runners[i]["l"]
+                  ? this.state.line_runners[i]["l"]
+                  : [0];
+              ls[i]["ls"] =
+                this.state.line_runners &&
+                this.state.line_runners.length > i &&
+                this.state.line_runners[i]["ls"]
+                  ? this.state.line_runners[i]["ls"]
+                  : [0];
+              ls[i]["exp"] =
+                this.props.eventdata.line_runners &&
+                this.props.eventdata.line_runners.length > i
+                  ? this.props.eventdata.line_runners[i].exp
+                  : "";
+
+              if (!market_ids.includes(result.data.line_runners[i].market_id)) {
+                market_ids.push(result.data.line_runners[i].market_id);
+              }
+            }
+          }
+          if (result.data && result.data.extra_runners) {
+            for (let i = 0; i < result.data.extra_runners.length; i++) {
+              ext[i] = {};
+              if (result.data.extra_runners[i].market_id)
+                market_type[result.data.extra_runners[i].market_id] =
+                  result.data.extra_runners[i].market_name;
+              ext[i]["rs"] =
+                this.state.extra_runners.length > i &&
+                this.state.extra_runners[i]["rs"]
+                  ? this.state.extra_runners[i]["rs"]
+                  : "";
+              ext[i]["n"] = result.data.extra_runners[i].name;
+              ext[i]["market_name"] = result.data.extra_runners[i].market_name;
+              ext[i]["rid"] = result.data.extra_runners[i].runnerId;
+              ext[i]["mkid"] = result.data.extra_runners[i].market_id;
+              ext[i]["lock"] = result.data.extra_runners[i].locked;
+
+              ext[i]["exp"] =
+                this.props.eventdata.extra_runners &&
+                this.props.eventdata.extra_runners.length > i
+                  ? this.props.eventdata.extra_runners[i].exp
+                  : "";
+
+              ext[i]["b"] =
+                this.state.extra_runners.length > i &&
+                this.state.extra_runners[i]["b"]
+                  ? this.state.extra_runners[i]["b"]
+                  : [0];
+              ext[i]["bs"] =
+                this.state.extra_runners.length > i &&
+                this.state.extra_runners[i]["bs"]
+                  ? this.state.extra_runners[i]["bs"]
+                  : [0];
+              ext[i]["l"] =
+                this.state.extra_runners.length > i &&
+                this.state.extra_runners[i]["l"]
+                  ? this.state.extra_runners[i]["l"]
+                  : [0];
+              ext[i]["ls"] =
+                this.state.extra_runners.length > i &&
+                this.state.extra_runners[i]["ls"]
+                  ? this.state.extra_runners[i]["ls"]
+                  : [0];
+              if (
+                !market_ids.includes(result.data.extra_runners[i].market_id)
+              ) {
+                market_ids.push(result.data.extra_runners[i].market_id);
+              }
+            }
+          }
+          if (rn.length === 0 && ls.length === 0 && ext.length === 0) {
+            window.history.back();
+          }
+          this.setState(
+            {
+              eventname: eventname,
+              runners: rn,
+              line_runners: [...ls],
+              extra_runners: [...ext],
+              market_type: market_type,
+              market_ids: [...market_ids],
+            },
+            () => {
+              this.socket.emit("event", {
+                eid: this.props.eventid,
+                mid: this.state.market_ids.join(),
+              });
+            }
+          );
+        }
+      })
+      .then(() => {
+        for (let i = 0; i < this.state.market_ids.length; i++) {
+          this.getRunnerPostion(this.state.market_ids[i]);
+        }
+        this.getBetList();
+      })
+      .catch((error) => console.log("error", error));
+  }
+  mapExposure(runner_id, data) {
+    for (let i = 0; i < data.length; i++) {
+      if (data[i].runner_id === runner_id) {
+        return data[i].exp;
+      }
+    }
+  }
+  getRunnerPostion = (marketid = "") => {
+    let urlencoded = new URLSearchParams();
+    let market_id = marketid ? marketid : this.props.marketid;
+    urlencoded.append("event_id", this.props.eventid);
+    urlencoded.append("mode_id", this.props.modeid);
+    urlencoded.append("market_id", market_id);
+    let market_type = this.state.market_type[market_id];
+    fetch(import.meta.env.VITE_API_HOST + "/getExposerAdmin", {
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("jwt"),
+      },
+      body: urlencoded,
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.status === 401) {
+          this.socket.disconnect();
+          this.setState(
+            {
+              isLoggenin: false,
+              eventdata: {},
+              runners: [],
+            },
+            () => {
+              window.location.href = process.env.PUBLIC_URL + "/login";
+            }
+          );
+        } else {
+          return response.json();
+        }
+      })
+      .then((result) => {
+        let runner = [...this.state.runners];
+        let extra_runners = [...this.state.extra_runners];
+        let line_runners = [...this.state.line_runners];
+        let extra_type = ["Completed Match", "To Win the Toss", "Tied Match"];
+
+        if (result && result.success && market_type === "mo") {
+          if (runner && result.data.runners.length > 0) {
+            for (let i = 0; i < runner.length; i++) {
+              runner[i].exp = this.mapExposure(
+                runner[i].rid,
+                result.data.runners
+              );
+            }
+          }
+        }
+        if (result && result.success && market_type === "ls") {
+          for (let i = 0; i < line_runners.length; i++) {
+            if (line_runners[i].mkid === market_id) {
+              line_runners[i].exp =
+                result.data.runners.length > 0 && result.data.runners[0].exp
+                  ? result.data.runners[0].exp
+                  : "";
+            }
+          }
+        }
+        if (extra_type.includes(market_type)) {
+          if (extra_runners && result.data.runners.length > 0) {
+            for (let i = 0; i < extra_runners.length; i++) {
+              if (extra_runners[i].mkid === market_id) {
+                extra_runners[i].exp = this.mapExposure(
+                  extra_runners[i].rid,
+                  result.data.runners
+                );
+              }
+            }
+          }
+        }
+        let updatetime = new Date().getTime();
+        let eventdata = this.state.eventdata;
+        eventdata.updatetime = updatetime;
+        eventdata.eventname = this.state.eventname;
+        this.setState(
+          {
+            runners: runner,
+            bal: result.data.bal ? result.data.bal : 0,
+            exp: result.data.exp ? result.data.exp : "",
+            eventdata: eventdata,
+          },
+          () => {
+            this.catchData();
+          }
+        );
+      });
+  };
+  getBetList = () => {
+    let urlencoded = new URLSearchParams();
+    urlencoded.append("event_id", this.props.eventid);
+    urlencoded.append("mode_id", this.props.modeid);
+    fetch(import.meta.env.VITE_API_HOST + "/getAllBets", {
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("jwt"),
+      },
+      body: urlencoded,
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.status === 401) {
+          this.socket.disconnect();
+          this.setState(
+            {
+              isLoggenin: false,
+              eventdata: {},
+              runners: [],
+            },
+            () => {
+              window.location.href = process.env.PUBLIC_URL + "/login";
+            }
+          );
+        } else {
+          return response.json();
+        }
+      })
+      .then((result) => {
+        if (result && result.success) {
+          let matched =
+            result.data && result.data.matched ? result.data.matched : [];
+          this.setState(
+            {
+              betlist: matched,
+            },
+            () => {
+              this.catchData();
+            }
+          );
+        }
+      });
+  };
+  changeData = (n_data) => {
+    let runners = [...this.state.runners];
+    let line_runners = [...this.state.line_runners];
+    let extra_runners = [...this.state.extra_runners];
+    if (n_data && n_data.mo && n_data.mo.rn.length) {
+      if (this.state.market_type[n_data.mo.mkid] === "mo") {
+        for (let i = 0; i < n_data.mo.rn.length; i++) {
+          runners[i]["back_blink"] =
+            runners[i]["b"][0] !== n_data.mo.rn[i].b[0] ? "back_blink" : "";
+          runners[i]["lay_blink"] =
+            runners[i]["l"][0] !== n_data.mo.rn[i].l[0] ? "lay_blink" : "";
+          runners[i]["rs"] = n_data.mo.rn[i].rs ? n_data.mo.rn[i].rs : "";
+          runners[i]["n"] = this.state.runners[i]
+            ? this.state.runners[i].n
+            : "";
+          runners[i]["exp"] = this.state.runners[i]
+            ? this.state.runners[i].exp
+            : "";
+          runners[i]["b"] = n_data.mo.rn[i].b;
+          runners[i]["b"] = n_data.mo.rn[i].b;
+          runners[i]["bs"] = n_data.mo.rn[i].bs;
+          runners[i]["l"] = n_data.mo.rn[i].l;
+          runners[i]["ls"] = n_data.mo.rn[i].ls;
+        }
+      }
+      if (this.state.market_type[n_data.mo.mkid] === "ls") {
+        for (let j = 0; j < line_runners.length; j++) {
+          if (n_data.mo.mkid === line_runners[j].mkid) {
+            line_runners[j]["back_blink"] =
+              line_runners[j]["bs"][0] !== n_data.mo.rn[0].bs[0]
+                ? "back_blink"
+                : "";
+            line_runners[j]["lay_blink"] =
+              line_runners[j]["ls"][0] !== n_data.mo.rn[0].ls[0]
+                ? "lay_blink"
+                : "";
+            line_runners[j]["rs"] = n_data.mo.rn[0].rs
+              ? n_data.mo.rn[0].rs
+              : "";
+            line_runners[j]["exp"] = this.state.line_runners[j]
+              ? this.state.line_runners[j].exp
+              : "";
+            line_runners[j]["b"] = n_data.mo.rn[0].b;
+            line_runners[j]["bs"] = n_data.mo.rn[0].bs;
+            line_runners[j]["l"] = n_data.mo.rn[0].l;
+            line_runners[j]["ls"] = n_data.mo.rn[0].ls;
+          }
+        }
+      }
+      let match_type = ["Completed Match", "To Win the Toss", "Tied Match"];
+      if (match_type.includes(this.state.market_type[n_data.mo.mkid])) {
+        let k = 0;
+        for (let j = 0; j < this.state.extra_runners.length; j++) {
+          if (
+            this.state.extra_runners[j].market_name ===
+            this.state.market_type[n_data.mo.mkid]
+          ) {
+            extra_runners[j]["back_blink"] =
+              extra_runners[j]["bs"][0] !== n_data.mo.rn[k].bs[0]
+                ? "back_blink"
+                : "";
+            extra_runners[j]["lay_blink"] =
+              extra_runners[j]["ls"][0] !== n_data.mo.rn[k].ls[0]
+                ? "lay_blink"
+                : "";
+            extra_runners[j]["rs"] = n_data.mo.rn[k].rs
+              ? n_data.mo.rn[k].rs
+              : "";
+            extra_runners[j]["exp"] = this.state.extra_runners[j]
+              ? this.state.extra_runners[j].exp
+              : "";
+            extra_runners[j]["b"] = n_data.mo.rn[k].b;
+            extra_runners[j]["b"] = n_data.mo.rn[k].b;
+            extra_runners[j]["bs"] = n_data.mo.rn[k].bs;
+            extra_runners[j]["l"] = n_data.mo.rn[k].l;
+            extra_runners[j]["ls"] = n_data.mo.rn[k].ls;
+            k++;
+          }
+        }
+      }
+    }
+    this.setState({
+      runners: [...runners],
+      line_runners: [...line_runners],
+      extra_runners: [...extra_runners],
+      stop: 0,
+    });
+  };
+  tick = () => {
+    let stop = parseInt(this.state.stop) + 1;
+    if (parseInt(stop) > 4) {
+      stop = 0;
+      let market_ids = [...this.state.market_ids];
+      this.socket.emit("event", {
+        eid: this.props.eventid,
+        mid: market_ids.join(),
+      });
+    }
+    this.setState({
+      stop: stop,
+    });
+  };
+  closeBetSlip = () => {
+    this.setState({
+      show_slip: false,
+    });
+  };
+  closeBook = () => {
+    this.setState({
+      openbook: false,
+    });
+  };
+  closePosition = () => {
+    this.setState({
+      openpostion: false,
+    });
+  };
+  dateFormate = (date) => {
+    var new_date = date + "+00:00";
+    var d = new Date(new_date);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+  getLinePosition = (market_id, runner_id, book_title) => {
+    let urlencoded = new URLSearchParams();
+    urlencoded.append("market_id", market_id);
+    urlencoded.append("event_id", this.props.eventid);
+    urlencoded.append("runner_id", runner_id);
+    fetch(import.meta.env.VITE_API_HOST + "/getRunnerPosition", {
+      headers: {
+        Authorization: "Bearer " + localStorage.getItem("jwt"),
+      },
+      body: urlencoded,
+      method: "POST",
+    })
+      .then((response) => {
+        if (response.status === 401) {
+          this.socket.disconnect();
+          window.location.href = process.env.PUBLIC_URL + "/login";
+        } else {
+          return response.json();
+        }
+      })
+      .then((result) => {
+        this.setState({
+          position: result.data ? result.data : [],
+        });
+      })
+      .then(() => {
+        this.setState({
+          openpostion: true,
+          book_title: book_title,
+        });
+      });
+  };
+  render() {
+    let MATCH_ODDS;
+    let LINE_SESSION;
+    let B_M;
+    let C_M;
+    let T_M;
+    let TOSS;
+    let FANCY_ODDS;
+    let C_M_TITLE;
+    let T_M_TITLE;
+    let TOSS_TITLE;
+    let E_X;
+    let E_T_ARR = [];
+
+    for (let k = 0; k < this.state.extra_runners.length; k++) {
+      if (k === 0) {
+        E_T_ARR.push({
+          market_name: this.state.extra_runners[k].market_name,
+          mkid: this.state.extra_runners[k].mkid,
+        });
+      } else if (k > 0) {
+        if (
+          this.state.extra_runners[k - 1].mkid !==
+          this.state.extra_runners[k].mkid
+        ) {
+          E_T_ARR.push({
+            market_name: this.state.extra_runners[k].market_name,
+            mkid: this.state.extra_runners[k].mkid,
+          });
+        }
+      }
+    }
+    let E_T = E_T_ARR.map((v, k) => (
+      <table className="table table-sm table-odds" key={k}>
+        <thead>
+          <tr className="text-center">
+            <th width="60%" className="eventtype">
+              {v.market_name}
+              <button
+                onClick={() => {
+                  this.setState({
+                    openbook: true,
+                    book_marketid: v.mkid,
+                    book_title: v.n,
+                  });
+                }}
+                className="btn book-btn btn-theme float-right"
+              >
+                B
+              </button>
+            </th>
+            <th width="20%" className="back">
+              Back
+            </th>
+            <th className="lay">Lay</th>
+          </tr>
+        </thead>
+        <tbody>
+          {this.state.extra_runners.map((nv, nk) => {
+            if (v.mkid === nv.mkid)
+              return (
+                <tr key={nk}>
+                  <td className="runner">
+                    {nv.n}
+                    <span
+                      className={`bold float-right ${
+                        nv.rs === "LOSER" ? "text-danger" : "text-success"
+                      }`}
+                    >
+                      {nv.rs && nv.rs !== "ACTIVE" ? nv.rs : ""}
+                    </span>
+                    <br />
+                    <small
+                      className={`bold ${
+                        nv.exp < 0 ? "text-danger" : "text-success"
+                      }`}
+                    >
+                      {nv.exp}
+                    </small>
+                  </td>
+                  <td className="back">
+                    {nv.b[0]}
+                    <br />
+                    <span className="size">{nv.bs[0]}</span>
+                    {(nv.lock === 1 ||
+                      Math.ceil(nv.b[0]) === 0 ||
+                      Math.ceil(nv.bs[0]) === 0) && (
+                      <span className="lock">
+                        <FiLock></FiLock>
+                      </span>
+                    )}
+                  </td>
+                  <td className="lay">
+                    {nv.l[0]}
+                    <br />
+                    <span className="size">{nv.ls[0]}</span>
+                    {(nv.lock === 1 ||
+                      Math.ceil(nv.l[0]) === 0 ||
+                      Math.ceil(nv.ls[0]) === 0) && (
+                      <span className="lock">
+                        <FiLock></FiLock>
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+          })}
+        </tbody>
+      </table>
+    ));
+
+    if (this.state.runners && this.state.runners.length > 0) {
+      MATCH_ODDS = this.state.runners.map((v, k) => (
+        <tr key={k}>
+          <td className="runner" width="60%">
+            {v.n}
+            <span
+              className={`bold float-right ${
+                v.rs === "LOSER" ? "text-danger" : "text-success"
+              }`}
+            >
+              {v.rs && v.rs !== "ACTIVE" ? v.rs : ""}
+            </span>
+            <br />
+            <small
+              className={`bold ${v.exp < 0 ? "text-danger" : "text-success"}`}
+            >
+              {v.exp}
+            </small>
+          </td>
+          <td
+            onClick={() => {
+              this.setState({
+                show_slip: v.lock === 1 ? false : true,
+                slip_obj: v,
+                slip_type: "back",
+                stack: v.b[0],
+                o_rate: v.b[0],
+                active_runner_id: v.rid.toString(),
+                active_runner_name: v.n,
+                active_market_type: this.state.market_type[this.props.marketid],
+                active_runners: [...this.state.runners],
+                slip_market_id: this.props.marketid,
+              });
+            }}
+            className={`${
+              this.state.runners.length > 0 && this.state.runners[k].back_blink
+                ? this.state.runners[k].back_blink
+                : ""
+            } back`}
+            width="20%"
+          >
+            {v.b[0]}
+            {(v.lock === 1 ||
+              Math.ceil(v.b[0]) === 0 ||
+              Math.ceil(v.bs[0]) === 0) && (
+              <span className="lock">
+                <FiLock></FiLock>
+              </span>
+            )}
+            <br />
+            <span className="size">{v.bs[0]}</span>
+          </td>
+          <td
+            onClick={() => {
+              this.setState({
+                show_slip: v.lock === 1 ? false : true,
+                slip_obj: v,
+                slip_type: "lay",
+                stack: v.l[0],
+                active_runner_id: v.rid.toString(),
+                active_runner_name: v.n,
+                active_market_type: this.state.market_type[this.props.marketid],
+                active_runners: [...this.state.runners],
+                slip_market_id: this.props.marketid,
+              });
+            }}
+            className={`${
+              this.state.runners.length > 0 && this.state.runners[k].lay_blink
+                ? this.state.runners[k].lay_blink
+                : ""
+            } lay`}
+            width="20%"
+          >
+            {v.l[0]}
+            {(v.lock === 1 ||
+              Math.ceil(v.l[0]) === 0 ||
+              Math.ceil(v.ls[0]) === 0) && (
+              <span className="lock">
+                <FiLock></FiLock>
+              </span>
+            )}
+            <br />
+            <span className="size">{v.ls[0]}</span>
+          </td>
+        </tr>
+      ));
+    }
+    if (this.state.line_runners && this.state.line_runners.length > 0) {
+      LINE_SESSION = this.state.line_runners.map((v, k) => (
+        <tr key={k}>
+          <td className="runner" width="60%">
+            {v.n}
+            <button
+              onClick={() => {
+                this.setState({
+                  openbook: true,
+                  book_marketid: v.mkid,
+                  book_title: v.n,
+                });
+              }}
+              className="btn book-btn btn-theme float-right"
+            >
+              B
+            </button>
+
+            <span
+              className={`bold float-right ${
+                v.rs === "LOSER" ? "text-danger" : "text-success"
+              }`}
+            >
+              {v.rs && v.rs !== "ACTIVE" ? v.rs : ""}
+            </span>
+            <br />
+            {v.exp && (
+              <button
+                onClick={() => this.getLinePosition(v.mkid, v.rid, v.n)}
+                className={`btn btn-sm btn-postion ${
+                  v.exp < 0 ? "btn-danger" : "btn-theme"
+                }`}
+              >
+                {v.exp}
+              </button>
+            )}
+          </td>
+          <td
+            onClick={() => {
+              this.setState({
+                show_slip: v.lock === 1 ? false : true,
+                slip_obj: v,
+                slip_type: "lay",
+                stack: Math.ceil(v.b[0]),
+                o_rate: v.b[0],
+                opponent: Math.ceil(v.l[0]),
+                active_runner_id: v.rid.toString(),
+                active_runner_name: v.n,
+                active_market_type: this.state.market_type[v.mkid],
+                active_runners: [this.state.line_runners[k]],
+                slip_market_id: v.mkid,
+              });
+            }}
+            className={`lay ${
+              this.state.line_runners.length > 0 &&
+              this.state.line_runners[k].lay_blink
+                ? this.state.line_runners[k].lay_blink
+                : ""
+            }`}
+            width="20%"
+          >
+            {(v.lock === 1 ||
+              Math.ceil(v.b[0]) === 0 ||
+              Math.ceil(v.bs[0]) === 0) && (
+              <span className="lock">
+                <FiLock></FiLock>
+              </span>
+            )}
+            {Math.ceil(v.b[0])}
+            <br />
+            <span className="size">{v.bs[0]}</span>
+          </td>
+          <td
+            className={`back ${
+              this.state.line_runners.length > 0 &&
+              this.state.line_runners[k].back_blink
+                ? this.state.line_runners[k].back_blink
+                : ""
+            }`}
+            onClick={() => {
+              this.setState({
+                show_slip: v.lock === 1 ? false : true,
+                slip_obj: v,
+                slip_type: "back",
+                stack: Math.ceil(v.l[0]),
+                o_rate: v.l[0],
+                active_runner_id: v.rid.toString(),
+                active_runner_name: v.n,
+                active_market_type: this.state.market_type[v.mkid],
+                active_runners: [this.state.line_runners[k]],
+                slip_market_id: v.mkid,
+              });
+            }}
+            width="20%"
+          >
+            {(v.lock === 1 ||
+              Math.ceil(v.l[0]) === 0 ||
+              Math.ceil(v.ls[0]) === 0) && (
+              <span className="lock">
+                <FiLock></FiLock>
+              </span>
+            )}
+            {Math.ceil(v.l[0])}
+            <br />
+            <span className="size">{v.ls[0]}</span>
+          </td>
+        </tr>
+      ));
+    }
+    if (this.state.extra_runners && this.state.extra_runners.length > 0) {
+      const TOSS_ARR = this.state.extra_runners.filter((v, k) => {
+        return v.market_name === "To Win the Toss";
+      });
+      const C_M_ARR = this.state.extra_runners.filter((v, k) => {
+        return v.market_name === "Completed Match";
+      });
+      const TM_ARR = this.state.extra_runners.filter((v, k) => {
+        return v.market_name === "Tied Match";
+      });
+      if (TOSS_ARR.length > 0) {
+        TOSS_TITLE = [0].map((v, k) => (
+          <tr key={k} className="text-center">
+            <th className="eventtype">
+              To Win the Toss
+              <button
+                onClick={() => {
+                  this.setState({
+                    openbook: true,
+                    book_title: this.state.eventname + " Toss",
+                    book_marketid:
+                      TOSS_ARR.length > 0
+                        ? TOSS_ARR[0].mkid
+                        : this.props.marketid,
+                  });
+                }}
+                className="btn book-btn btn-theme float-right"
+              >
+                B
+              </button>
+            </th>
+            <th className="back">Back</th>
+            <th className="lay">Lay</th>
+          </tr>
+        ));
+        TOSS = TOSS_ARR.map((v, k) => (
+          <tr key={k}>
+            <td className="runner" width="60%">
+              {v.n}
+              <span
+                className={`bold float-right ${
+                  v.rs === "LOSER" ? "text-danger" : "text-success"
+                }`}
+              >
+                {v.rs && v.rs !== "ACTIVE" ? v.rs : ""}
+              </span>
+              <br />
+              <small
+                className={`bold ${v.exp < 0 ? "text-danger" : "text-success"}`}
+              >
+                {v.exp}
+              </small>
+            </td>
+            <td
+              className={`back ${
+                TOSS_ARR.length > 0 && TOSS_ARR[k].back_blink
+                  ? TOSS_ARR[k].back_blink
+                  : ""
+              }`}
+              width="20%"
+              onClick={() => {
+                this.setState({
+                  show_slip: v.lock === 1 ? false : true,
+                  slip_obj: v,
+                  slip_type: "back",
+                  stack: v.b[0],
+                  o_rate: v.b[0],
+                  active_runner_id: v.rid.toString(),
+                  active_runner_name: v.n,
+                  active_market_type: this.state.market_type[v.mkid],
+                  active_runners: [...TOSS_ARR],
+                  slip_market_id: v.mkid,
+                });
+              }}
+            >
+              {v.b[0]}
+              {(v.lock === 1 ||
+                Math.ceil(v.b[0]) === 0 ||
+                Math.ceil(v.bs[0]) === 0) && (
+                <span className="lock">
+                  <FiLock></FiLock>
+                </span>
+              )}
+              <br />
+              <span className="size">{v.bs[0]}</span>
+            </td>
+            <td
+              className={`lay ${
+                TOSS_ARR.length > 0 && TOSS_ARR[k].lay_blink
+                  ? TOSS_ARR[k].lay_blink
+                  : ""
+              }`}
+              onClick={() => {
+                this.setState({
+                  show_slip: v.lock === 1 ? false : true,
+                  slip_obj: v,
+                  slip_type: "lay",
+                  stack: v.l[0],
+                  active_runner_id: v.rid.toString(),
+                  active_runner_name: v.n,
+                  active_market_type: this.state.market_type[v.mkid],
+                  active_runners: [...TOSS_ARR],
+                  slip_market_id: v.mkid,
+                });
+              }}
+              width="20%"
+            >
+              {v.l[0]}
+              {(v.lock === 1 ||
+                Math.ceil(v.l[0]) === 0 ||
+                Math.ceil(v.ls[0]) === 0) && (
+                <span className="lock">
+                  <FiLock></FiLock>
+                </span>
+              )}
+              <br />
+              <span className="size">{v.ls[0]}</span>
+            </td>
+          </tr>
+        ));
+      }
+      if (C_M_ARR.length > 0) {
+        C_M_TITLE = [0].map((v, k) => (
+          <tr key={k} className="text-center">
+            <th className="eventtype">
+              Complete Match
+              <button
+                onClick={() => {
+                  this.setState({
+                    openbook: true,
+                    book_title: this.state.eventname + " Complete Match",
+                    book_marketid:
+                      C_M_ARR.length > 0
+                        ? C_M_ARR[0].mkid
+                        : this.props.marketid,
+                  });
+                }}
+                className="btn book-btn btn-theme float-right"
+              >
+                B
+              </button>
+            </th>
+            <th className="back">Back</th>
+            <th className="lay">Lay</th>
+          </tr>
+        ));
+        C_M = C_M_ARR.map((v, k) => (
+          <tr key={k}>
+            <td className="runner" width="60%">
+              {v.n}
+              <span
+                className={`bold float-right ${
+                  v.rs === "LOSER" ? "text-danger" : "text-success"
+                }`}
+              >
+                {v.rs && v.rs !== "ACTIVE" ? v.rs : ""}
+              </span>
+              <br />
+              <small
+                className={`bold ${v.exp < 0 ? "text-danger" : "text-success"}`}
+              >
+                {v.exp}
+              </small>
+            </td>
+            <td
+              className={`back ${
+                C_M_ARR.length > 0 && C_M_ARR[k].back_blink
+                  ? C_M_ARR[k].back_blink
+                  : ""
+              }`}
+              onClick={() => {
+                this.setState({
+                  show_slip: v.lock === 1 ? false : true,
+                  slip_obj: v,
+                  slip_type: "back",
+                  stack: v.b[0],
+                  o_rate: v.b[0],
+                  active_runner_id: v.rid.toString(),
+                  active_runner_name: v.n,
+                  active_market_type: this.state.market_type[v.mkid],
+                  active_runners: [...C_M_ARR],
+                  slip_market_id: v.mkid,
+                });
+              }}
+              width="20%"
+            >
+              {v.b[0]}
+              {(v.lock === 1 ||
+                Math.ceil(v.b[0]) === 0 ||
+                Math.ceil(v.bs[0]) === 0) && (
+                <span className="lock">
+                  <FiLock></FiLock>
+                </span>
+              )}
+              <br />
+              <span className="size">{v.bs[0]}</span>
+            </td>
+            <td
+              className={`lay ${
+                C_M_ARR.length > 0 && C_M_ARR[k].lay_blink
+                  ? C_M_ARR[k].lay_blink
+                  : ""
+              }`}
+              onClick={() => {
+                this.setState({
+                  show_slip: v.lock === 1 ? false : true,
+                  slip_obj: v,
+                  slip_type: "lay",
+                  stack: v.l[0],
+                  active_runner_id: v.rid.toString(),
+                  active_runner_name: v.n,
+                  active_market_type: this.state.market_type[v.mkid],
+                  active_runners: [...C_M_ARR],
+                  slip_market_id: v.mkid,
+                });
+              }}
+              width="20%"
+            >
+              {v.l[0]}
+              {(v.lock === 1 ||
+                Math.ceil(v.l[0]) === 0 ||
+                Math.ceil(v.ls[0]) === 0) && (
+                <span className="lock">
+                  <FiLock></FiLock>
+                </span>
+              )}
+              <br />
+              <span className="size">{v.ls[0]}</span>
+            </td>
+          </tr>
+        ));
+      }
+      if (TM_ARR.length > 0) {
+        T_M = TM_ARR.map((v, k) => (
+          <tr key={k}>
+            <td className="runner" width="60%">
+              {v.n}
+              <span
+                className={`bold float-right ${
+                  v.rs === "LOSER" ? "text-danger" : "text-success"
+                }`}
+              >
+                {v.rs && v.rs !== "ACTIVE" ? v.rs : ""}
+              </span>
+              <br />
+              <small
+                className={`bold ${v.exp < 0 ? "text-danger" : "text-success"}`}
+              >
+                {v.exp}
+              </small>
+            </td>
+            <td
+              className={`back ${
+                TM_ARR.length > 0 && TM_ARR[k].back_blink
+                  ? TM_ARR[k].back_blink
+                  : ""
+              }`}
+              onClick={() => {
+                this.setState({
+                  show_slip: v.lock === 1 ? false : true,
+                  slip_obj: v,
+                  slip_type: "back",
+                  stack: v.b[0],
+                  o_rate: v.b[0],
+                  active_runner_id: v.rid.toString(),
+                  active_runner_name: v.n,
+                  active_market_type: this.state.market_type[v.mkid],
+                  active_runners: [...TM_ARR],
+                  slip_market_id: v.mkid,
+                });
+              }}
+              width="20%"
+            >
+              {v.b[0]}
+              {(v.lock === 1 ||
+                Math.ceil(v.b[0]) === 0 ||
+                Math.ceil(v.bs[0]) === 0) && (
+                <span className="lock">
+                  <FiLock></FiLock>
+                </span>
+              )}
+              <br />
+              <span className="size">{v.bs[0]}</span>
+            </td>
+            <td
+              className={`lay ${
+                TM_ARR.length > 0 && TM_ARR[k].lay_blink
+                  ? TM_ARR[k].lay_blink
+                  : ""
+              }`}
+              onClick={() => {
+                this.setState({
+                  show_slip: v.lock === 1 ? false : true,
+                  slip_obj: v,
+                  slip_type: "lay",
+                  stack: v.l[0],
+                  active_runner_id: v.rid.toString(),
+                  active_runner_name: "Complete Match" + v.n,
+                  active_market_type: this.state.market_type[v.mkid],
+                  active_runners: [...TM_ARR],
+                  slip_market_id: v.mkid,
+                });
+              }}
+              width="20%"
+            >
+              {v.l[0]}
+              {(v.lock === 1 ||
+                Math.ceil(v.l[0]) === 0 ||
+                Math.ceil(v.ls[0]) === 0) && (
+                <span className="lock">
+                  <FiLock></FiLock>
+                </span>
+              )}
+              <br />
+              <span className="size">{v.ls[0]}</span>
+            </td>
+          </tr>
+        ));
+        T_M_TITLE = [0].map((v, k) => (
+          <tr key={k} className="text-center">
+            <th className="eventtype">
+              Tie Match
+              <button
+                onClick={() => {
+                  this.setState({
+                    openbook: true,
+                    book_title: this.state.eventname + " Tie Match",
+                    book_marketid:
+                      TM_ARR.length > 0 ? TM_ARR[0].mkid : this.props.marketid,
+                  });
+                }}
+                className="btn book-btn btn-theme float-right"
+              >
+                B
+              </button>
+            </th>
+            <th className="back">Back</th>
+            <th className="lay">Lay</th>
+          </tr>
+        ));
+      }
+    }
+    if (this.state.eventdata && this.state.eventdata.xmkt) {
+      const fancy_data = this.state.eventdata.xmkt;
+      FANCY_ODDS = fancy_data.rn.map((v, k) => (
+        <tr key={k}>
+          <td className="runner" width="60%">
+            {v.n}
+            <span
+              className={`bold float-right ${
+                v.rs === "LOSER" ? "text-danger" : "text-success"
+              }`}
+            >
+              {v.rs && v.rs !== "ACTIVE" ? v.rs : ""}
+            </span>
+            <br />
+            <span className="text-success" />
+          </td>
+          <td className="lay" width="20%">
+            {v.l[0]}
+            {!v.l[0] ||
+              (v.lock === 1 && (
+                <span className="lock">
+                  <FiLock></FiLock>
+                </span>
+              ))}
+            <br />
+            <span className="size">{v.ls[0]}</span>
+          </td>
+          <td className="back " width="20%">
+            {v.b[0]}
+            <br />
+            <span className="size">{v.bs[0]}</span>
+          </td>
+        </tr>
+      ));
+    }
+    return (
+      <React.Fragment>
+        {this.state.logout && (
+          <Navigate to="../../../../login" replace={true} />
+        )}
+        <div className="header-bg theme-show">
+          <nav className="header-nav">
+            <span
+              title="Back"
+              onClick={() => {
+                window.history.back();
+              }}
+              className="btn-back ull-left"
+            >
+              {" "}
+              <IoMdArrowBack></IoMdArrowBack>
+            </span>
+
+            <DropDown bal={this.state.bal} exp={this.state.exp}></DropDown>
+            <div className="marquee">
+              <marquee>Website is Under Construction For Fun</marquee>
+            </div>
+          </nav>
+        </div>
+        <div className="container-fluid">
+          <div className="row">
+            <div className="mo col-md-4 p-0 theme-shadow">
+              <table className="table table-sm table-odds">
+                <thead>
+                  <tr className="event-title">
+                    <th colSpan="3">{this.state.eventname}</th>
+                  </tr>
+                  <tr className="text-center">
+                    <th className="eventtype">
+                      Match Odds
+                      <button
+                        onClick={() => {
+                          this.setState({
+                            openbook: true,
+                            book_marketid: this.props.marketid,
+                            book_title: this.state.eventname + " Match Odds",
+                          });
+                        }}
+                        className="btn book-btn btn-theme float-right"
+                      >
+                        B
+                      </button>
+                    </th>
+                    <th className="back">Back</th>
+                    <th className="lay">Lay</th>
+                  </tr>
+                </thead>
+                <tbody>{MATCH_ODDS}</tbody>
+              </table>
+              {TOSS && (
+                <table className="table table-sm table-odds">
+                  <thead>{TOSS_TITLE}</thead>
+                  <tbody>{TOSS}</tbody>
+                </table>
+              )}
+              {B_M && (
+                <table className="table table-sm table-odds">
+                  <thead>
+                    <tr className="text-center">
+                      <th className="eventtype">
+                        BookMaker
+                        <button
+                          onClick={() => {
+                            this.setState({
+                              openbook: true,
+                              book_marketid:
+                                this.state.market_type[
+                                  this.state.market_ids[0]
+                                ] === "bm"
+                                  ? this.state.market_ids[0]
+                                  : "",
+                            });
+                          }}
+                          className="btn book-btn btn-theme float-right"
+                        >
+                          B
+                        </button>
+                      </th>
+                      <th className="back">Back</th>
+                      <th className="lay">Lay</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              )}
+              {LINE_SESSION && (
+                <table className="table table-sm table-odds">
+                  <thead>
+                    <tr className="text-center">
+                      <th className="eventtype">Line Session</th>
+                      <th className="back">No</th>
+                      <th className="lay">Yes</th>
+                    </tr>
+                  </thead>
+                  <tbody>{LINE_SESSION}</tbody>
+                </table>
+              )}
+              {C_M && (
+                <table className="table table-sm table-odds">
+                  <thead>{C_M_TITLE}</thead>
+                  <tbody>{C_M}</tbody>
+                </table>
+              )}
+
+              {T_M && (
+                <table className="table table-sm table-odds">
+                  <thead>{T_M_TITLE}</thead>
+                  <tbody>{T_M}</tbody>
+                </table>
+              )}
+              {E_T}
+              <table className="table table-sm table-odds">
+                <thead>
+                  <tr className="text-center">
+                    <th colSpan="5" className="eventtype">
+                      Matched Bet List
+                    </th>
+                  </tr>
+                  <tr className="row-header-betlist">
+                    <th>Runner</th>
+                    <th>Rate</th>
+                    <th className="text-right">Stake</th>
+                    <th className="text-center">P/L</th>
+                    <th className="text-center">Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {this.state.betlist &&
+                    this.state.betlist.length > 0 &&
+                    this.state.betlist.map((v, k) => (
+                      <tr
+                        key={k}
+                        className={`row-betlist ${
+                          v.bet_type ? v.bet_type : ""
+                        }`}
+                      >
+                        <td>{v.runner}</td>
+                        <td>{v.rate}</td>
+                        <td className="text-right">{v.stake}</td>
+                        <td className="text-center">
+                          {v.table_name !== "tbl_line_runners" &&
+                            (v.stake * (v.rate - 1)).toFixed(0)}
+                          {v.table_name === "tbl_line_runners" &&
+                            parseInt(v.stake)}
+                        </td>
+                        <td className="text-center">
+                          {this.dateFormate(v.created)}
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mo col-md-4 p-0 theme-shadow"></div>
+            {FANCY_ODDS && (
+              <div className="xmkt col-md-3 p-0 theme-shadow">
+                <table className="table table-sm table-odds">
+                  <thead>
+                    <tr className="text-center">
+                      <th className="eventtype">Fancy</th>
+                      <th className="lay">No</th>
+                      <th className="back">Yes</th>
+                    </tr>
+                  </thead>
+                  <tbody>{FANCY_ODDS}</tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+        {this.state.show_slip &&
+          this.state.stack &&
+          this.state.stack > 1 &&
+          this.state.stack < 1000 && (
+            <BetSlip
+              {...this.props}
+              stack={this.state.stack}
+              o_rate={this.state.o_rate}
+              slip_type={this.state.slip_type}
+              title={this.state.eventname}
+              slip_obj={this.state.slip_obj}
+              slip_runners={this.state.active_runners}
+              closeBetSlip={this.closeBetSlip}
+              runner_id={this.state.active_runner_id}
+              runner_name={this.state.active_runner_name}
+              getRunnerPostion={this.getRunnerPostion}
+              getBetList={this.getBetList}
+              active_market_type={this.state.active_market_type}
+              mid={this.state.slip_market_id}
+            ></BetSlip>
+          )}
+        {this.state.openbook && (
+          <Book
+            closeBook={this.closeBook}
+            betlist={this.state.betlist}
+            market_id={this.state.book_marketid}
+            dateFormate={this.dateFormate}
+            title={this.state.book_title}
+          ></Book>
+        )}
+        {this.state.openpostion && (
+          <Position
+            closePosition={this.closePosition}
+            position={this.state.position}
+            title={this.state.book_title}
+          ></Position>
+        )}
+      </React.Fragment>
+    );
+  }
+}
+export default EventPage;

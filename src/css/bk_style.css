@@ -1,0 +1,185 @@
+body{
+  color: #b4b4b4;
+}
+td {
+  white-space: nowrap
+}
+.theme-bg{
+  background: #222;
+}
+.event__name{
+  text-transform: uppercase;
+  color: #fff;
+  margin: 0;
+  border-bottom: 1px solid #000;
+  border-right: 1px solid #000;
+  border-left: 1px solid #000;
+  font-size: 22px;
+  text-align: center ;
+  padding: 10px;
+  background: #000;
+}
+.input__custom{
+  margin:6px 0;
+}
+.input__custom label{
+  text-transform: capitalize;
+  color: #fff;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+.input__custom input,
+.input__custom select{
+  border: none;
+  border-bottom: 1px solid #fff;
+  border-radius: 0;
+  font-size: 13px;
+  color: #fff;
+  height: 40px;
+  background: #333;
+  border-radius: 5px;
+}
+.input__custom input:focus,
+.input__custom select:focus{
+  background: none;
+  box-shadow: none;
+  border-color: #005d0a;
+  color: #fff;
+}
+.input__custom input:focus-visible,
+.input__custom select:focus-visible{
+  outline: none;
+}
+.btn-submit{
+  background: green;
+  border-radius: 5px !important;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 14px;
+}
+.btn-reset{
+  background: darkred;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 14px;
+  border-radius: 5px !important;
+  margin:0 8px !important;
+}
+.btn-revert{
+  background: #0051ca;
+  color: #fff;
+  text-transform: uppercase;
+  font-size: 14px;
+  border-radius: 5px !important;
+}
+.form-check{
+  color: #fff;
+  text-transform: capitalize;
+}
+.form-check label{
+  color: #fff;
+}
+.custom__form_scorecard .row{
+  margin:15px 0;
+  padding: 15px;
+  background: #dddddd03;
+  border-radius: 5px;
+  box-shadow: 0px 0px 0px 1px #00ff2b7d;
+}
+.custom__form_scorecard .row .col-md-6,
+.custom__form_scorecard .row .col-md-2,
+.custom__form_scorecard .row .col-md-3,
+.custom__form_scorecard .row .col-md-4{
+  padding: 0 3px;
+}
+
+.custom__form_btns{
+  background: #000;
+  margin: 15px 0 0 0;
+  border-radius: 4px;
+}
+.custom__form_btns .btn__rows:last-child{
+  border-bottom: none;
+}
+.btn__rows{
+  padding: 10px;
+  border-bottom: 1px solid #333;
+}
+.enter__btn{
+  border: none;
+  background: #eee;
+  text-transform: capitalize;
+  font-size: 13px;
+  color: #000;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 5px;
+  transition: 0.9s;
+  margin-right: 5px;
+}
+.enter__btn:hover{
+  color: #fff;
+  box-shadow: inset 0 0 0 1px green;
+  background: #000;
+}
+.enter__btn small{
+  font-size: 10px;
+}
+.last__balls{
+  margin-top: 10px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 10px;
+  position: relative;
+}
+.last__balls:before{
+  content: '';
+  position: absolute;
+  background: #222;
+  height: 100%;
+  width: 2px;
+  top: 0;
+  left: 0;
+  right: 0;
+  justify-content: center;
+  margin: 0 auto;
+}
+.balls label{
+  text-transform: capitalize;
+}
+.balls div span {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  justify-content: center;
+  line-height: 30px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 800;
+  margin-right: 3px;
+  color: #000;
+}
+.fours{
+  background: yellow;
+}
+.six{
+  background: green;
+}
+.wicket{
+  background: red;
+}
+.runs{
+  background: orange;
+}
+.wide{
+  background: #b4b4b4;
+}
+.no-ball{
+  background: red;
+}
+
+.modal-w1 {
+  /* width: 550vh; */
+  /* overflow: scroll; */
+}

@@ -1,0 +1,41 @@
+figure {
+    margin-bottom: 0px;
+}
+
+figure:hover img,
+figure:focus img {
+    -webkit-transform: scale(1.2);
+    transform: scale(1.2);
+}
+
+.fwak-casino img {
+    border: 2px solid var(--shadow-last-color);
+    cursor: pointer;
+    -webkit-transition: -webkit-transform 0.4s;
+    transition: transform 1s;
+}
+.fwak-title-main {
+    text-align: center;
+    font-size: 14px;
+    color: var(--sidebar-dark-gradian);
+    padding: 8px 0;
+    font-weight: 700;
+    background-image: radial-gradient(
+        circle,
+        var(--report-background) 0,
+        var(--shadow-middle-color) 50%,
+        var(--shadow-last-color) 100%
+    );
+}
+.fwak-casino .fig-pos {
+    position: relative;
+    overflow: hidden;
+}
+col-12,
+.fwak-casino .col-6,
+.fwak-casino .col-md-3,
+.fwak-casino .col-sm-3 {
+    padding: 0 6px !important;
+    margin-bottom: 15px;
+    min-height: 160px;
+}

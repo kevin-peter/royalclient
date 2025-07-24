@@ -1,0 +1,24 @@
+
+:root {
+    --theme-color: #FFB80C;
+    --logo-color: #352e2e;
+    --user-tab-color: #352e2e;
+    --user-tab-border: #fff1f1;
+    --border-color: #FFB80C;
+    --nav-text: #1E1E1E;
+    --nav-text-hover: #444141;
+    --report-background: #444141;
+    --report-gradiant: #444141;
+    --nav-border: #FFB80C;
+    --shadow-middle-color: #ffa4a4;
+    --shadow-last-color: #d8a42b;
+    --marquee-shade-color: #FFB80C;
+    --profile-variant-color: #f8fcff;
+    --sidebar-border-color: #FFB80C;
+    --sidebar-menu-text: #003f8c;
+    --sidebar-dark-gradian: #FFB80C;
+    --score-card-color: #800002;
+    --score-dark-color: #ad1616;
+    --theme-button: #003f8c;
+    --font-family-monospace: "Noto Sans",-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans" !important
+}

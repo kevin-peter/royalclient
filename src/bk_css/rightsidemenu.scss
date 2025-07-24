@@ -1,0 +1,118 @@
+.sidebar-menu-right {
+  width: 300px;
+  height: 100%;
+  position: fixed;
+  top: 0;
+  right: -300px;
+  -webkit-transform: translateX(0);
+  transform: translateX(0);
+  -webkit-transition: 0.1s ease all;
+  transition: 0.1s ease all;
+  background: var(--theme-color);
+  z-index: 99;
+  &.open {
+    -webkit-transform: translateX(-300px);
+    transform: translateX(-300px);
+    position: fixed;
+    overflow: hidden;
+  }
+  .menu {
+    > li {
+      > a {
+        padding: 15px 20px;
+        color: #000;
+      }
+    }
+  }
+}
+.sidebar-menu-right.open > ul.vertical.menu {
+  background: linear-gradient(
+    to bottom,
+    var(--sidebar-dark-gradian) 0%,
+    var(--theme-color) 50%,
+    var(--sidebar-dark-gradian) 100%
+  );
+  height: 100%;
+  border-left: solid 5px var(--sidebar-border-color);
+  overflow: auto;
+}
+@media (min-width: 320px) and (max-width: 480px) {
+  .sidebar-menu-right.open {
+    width: 100%;
+    max-width: 480px;
+    background-color: #00000082;
+  }
+  .sidebar-menu-right.open > ul.vertical.menu {
+    width: 100%;
+  }
+}
+
+.menu {
+  margin: 0;
+  list-style-type: none;
+  padding-left: 0px;
+}
+.sidebar-menu-right .menu > li > a {
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 12px;
+  text-transform: uppercase;
+  padding: 15px 15px;
+  color: var(--sidebar-menu-text);
+  text-decoration: none;
+}
+.menu.vertical > li:not(:first-child) {
+  display: block;
+  background-color: var(--report-background);
+  background-image: linear-gradient(
+    to bottom,
+    var(--profile-variant-color) 0%,
+    #fff 50%,
+    var(--profile-variant-color) 100%
+  );
+  margin-bottom: 0.2rem;
+  border-bottom: 1px solid #f3f3f3;
+}
+.menu > li > a {
+  display: block;
+  padding: 0.7rem 1rem;
+  line-height: 1;
+}
+
+.sidebar-toggler-div {
+  min-height: 0px;
+  display: block;
+}
+.sidebar-toggler-div > span.close-sidebar {
+  background-color: #dc3545;
+  color: #fff;
+  font-size: 37px;
+  line-height: 27px;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+  border: solid 2px #ff0018;
+  cursor: pointer;
+}
+li.sidebar-logout {
+  position: absolute;
+  bottom: 3px;
+  width: 100%;
+  right: 5px;
+  font-size: 30px;
+}
+li.sidebar-logout > a {
+  padding: 12px !important;
+}
+.logout-icon {
+  font-size: 30px;
+  color: #ff0000 !important;
+  margin-right: 10px;
+}
+.sport-icon {
+  font-size: 20px;
+  margin-right: 20px;
+}
+.sidebar-logout-txt {
+  color: #8c0303;
+  font-size: 18px;
+}

@@ -1,1 +1,0 @@
-(this["webpackJsonpsri-app"]=this["webpackJsonpsri-app"]||[]).push([[41],{135:function(t,e,s){"use strict";s.r(e);s(2);var n=s(1);e.default=function(t){return Object(n.jsx)(n.Fragment,{children:Object(n.jsx)("h2",{className:"mt-5 text-xl text-center",children:"Client Dashboard Coming soon..."})})}}}]);
