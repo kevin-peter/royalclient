@@ -14,7 +14,7 @@
     "@headlessui/react": "^2.2.4",
     "@heroicons/react": "^2.2.0",
     "@popperjs/core": "^2.11.8",
-    "axios": "^1.10.0",
+    "axios": "^1.11.0",
     "bootstrap": "^4.6.2",
     "bootstrap5": "^1.1.9",
     "moment": "^2.30.1",
