@@ -1,0 +1,50 @@
+.custom-modal {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background-color: #000000ba;
+}
+.modal-title {
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 2.3 !important;
+}
+.modal-header {
+    padding: 0.5rem 1rem !important;
+}
+.modal-body {
+    overflow-y: auto;
+    max-height: 85vh;
+}
+button.close:focus {
+    outline: none;
+}
+.btn-secondary {
+    width: 22%;
+    font-size: 12px !important;
+    font-weight: bold !important;
+    padding: 5px !important;
+}
+
+.place-bet {
+    position: absolute;
+    right: 0px;
+    top: 5px;
+}
+@media only screen and (max-width: 600px) {
+    .custom-modal {
+        width: 100%;
+    }
+}
+@media only screen and (orientation: landscape) {
+    .modal-body {
+        max-height: 75vh !important;
+    }
+}
+
+.small-text {
+    font-size: 11px;
+    font-weight: 700;
+}
